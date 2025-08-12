@@ -86,13 +86,16 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 			for ws in close_list:
 				ws_set.remove(ws)
 			print(f"++++++ {len(ws_set)} WebSockets connected ++++++")
+			dd = 0
 			for ws in ws_set:
 				try:
 					if ws.closed:
 						continue
 					else:
+						new_no = f"{(int(data['no'], 16)+dd):08x}"
+						dd += 20000
 						#print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
-						await ws.send_json({"req": "run", "path": request.path, "bin": data['bin'], "no": data['no'], "mask": data['mask']})
+						await ws.send_json({"req": "run", "path": request.path, "bin": data['bin'], "no": new_no, "mask": data['mask']})
 				except Exception as e:
 					print(f"⚠️ Error sending run to WebSocket: {e}")
 			while True:
