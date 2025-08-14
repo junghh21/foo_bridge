@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from collections import defaultdict
+import traceback
 
 # Lock per URL
 url_locks = defaultdict(asyncio.Lock)
@@ -105,6 +106,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 			while True:
 				try:
 					item = await asyncio.wait_for(submit_q.get(), 1)
+					submit_q.task_done()
 				except asyncio.TimeoutError:
 					await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
 					continue
