@@ -97,7 +97,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 					else:
 						new_no = f"{(no+dd):08x}"
 						dd += 20000
-						print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
+						#print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
 						await ws.send_json({"req": "run", "path": request.path, "bin": data['bin'], "no": new_no})
 				except Exception as e:
 					print(f"⚠️ Error sending run to WebSocket: {e}")
@@ -108,7 +108,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 				except asyncio.TimeoutError:
 					await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
 					continue
-				#print(f"📤 Submit item : {json.dumps(item, indent=2)}")
+				print(f"📤 Submit item : {json.dumps(item, indent=2)}")
 				if 'result' in item and item['result'] == True:
 					print(f"... {item['no']}")
 					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
