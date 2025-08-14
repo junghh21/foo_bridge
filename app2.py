@@ -108,8 +108,8 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 				except asyncio.TimeoutError:
 					await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
 					continue
-				print(f"📤 Submit item : {json.dumps(item, indent=2)}")
-				if 'result' in item and item['result'] == True:
+				#print(f"📤 Submit item : {json.dumps(item, indent=2)}")
+				if 'result' in item and item['result'] == "True":
 					print(f"... {item['no']}")
 					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
 				if time.time() - start_time > 90:
