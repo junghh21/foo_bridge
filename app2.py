@@ -97,7 +97,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 					else:
 						new_no = f"{(no+dd):08x}"
 						dd += 20000
-						#print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
+						print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
 						await ws.send_json({"req": "run", "path": request.path, "bin": data['bin'], "no": new_no})
 				except Exception as e:
 					print(f"⚠️ Error sending run to WebSocket: {e}")
