@@ -113,6 +113,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 					print(f"... {item['no']}")
 					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
 				if time.time() - start_time > 90:
+					print(f"Request Timeout : {request.path} {no=:08x} {id=}")
 					await response.write_eof()
 					break
 
