@@ -106,12 +106,12 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 				try:
 					item = await asyncio.wait_for(submit_q.get(), 1)
 				except asyncio.TimeoutError:
-					#await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
+					await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
 					continue
 				#print(f"📤 Submit item : {json.dumps(item, indent=2)}")
 				if 'result' in item and item['result'] == True:
 					print(f"... {item['no']}")
-				await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
+					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
 				if time.time() - start_time > 60:
 					await response.write_eof()
 					break
