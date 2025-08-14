@@ -112,7 +112,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 				if 'result' in item and item['result'] == True:
 					print(f"... {item['no']}")
 					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
-				if time.time() - start_time > 60:
+				if time.time() - start_time > 90:
 					await response.write_eof()
 					break
 
