@@ -17,21 +17,13 @@ async def handle(request: web.Request) -> web.Response:
 	text = f"Hello, {name}, from your secure aiohttp server!"
 	return web.Response(text=text)
 
+ws_set = {}#set()
 async def handle_info(request: web.Request) -> web.Response:
-	json_data = {	'cpu_count': os.cpu_count(),
-								'platform': sys.platform,
-								'python_version': sys.version,
-								'working_directory': os.getcwd(),
-								'pid': os.getpid(),
-								'cpu_usage': os.popen(f'ps -p {os.getpid()} -o %cpu').read().strip(),
-								'memory_usage': os.popen(f'ps -p {os.getpid()} -o %mem').read().strip(),
-								'uptime': time.time() - os.path.getmtime('/proc/1/stat'),
-							}
+	json_data = [val.get("noti", {}) for key, val in ws_set.items()]
 	return web.json_response(json_data)
 
 run_q = asyncio.Queue()
 submit_q = asyncio.Queue()
-ws_set = set()
 # WebSocket handler
 async def handle_ws(request):
 	ws = web.WebSocketResponse()
@@ -44,15 +36,22 @@ async def handle_ws(request):
 	client_port = peername[1] if peername else 'unknown'
 	print(f"Client IP: {client_ip}, Port: {client_port}")
 	#print(f"Request headers: {json.dumps(headers, indent=2)}")
+	#print(headers['Sec-WebSocket-Key'])
 	#print(f"Secure connection: {request.secure}")
 	#print(f"Scheme: {request.scheme}")
 	#print(f"Path: {request.path}")
-	ws_set.add(ws)
+
+	key = headers['Sec-WebSocket-Key']
+	#ws_set.add(ws)
+	ws_set[key] = {'ws': ws}
 	async for msg in ws:
 		if msg.type == WSMsgType.TEXT:
 			try:
 				data = json.loads(msg.data)
-				await submit_q.put(data)
+				if 'result' in data and data['result'] == "True":
+					await submit_q.put(data)
+				if 'type' in data and data['type'] == "noti":
+					ws_set[key]['noti'] = data
 			except json.JSONDecodeError:
 				print("⚠️ Invalid JSON received")
 			except Exception as e:
@@ -63,8 +62,10 @@ async def handle_ws(request):
 		elif msg.type == WSMsgType.CLOSE:
 			print("🔌 WebSocket connection closed by client")
 			break
+
 	print("🔌 WSS client disconnected")
-	ws_set.remove(ws)
+	del ws_set[key]
+
 	return ws
 
 async def handle_params(request: web.Request) -> web.StreamResponse:
@@ -83,17 +84,13 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 			no = int(data['no'], 16)
 			id = data['id']
 			print(f"Client Req : {request.path} {no=:08x} {id=}")
-			close_list = []
-			for ws in ws_set:
-				if ws.closed:
-					close_list.append(ws)
-			for ws in close_list:
-				ws_set.remove(ws)
 			print(f"++++++ {len(ws_set)} WebSockets connected ++++++")
 			dd = 0
-			for ws in ws_set:
+			for key, val in ws_set.items():
 				try:
+					ws = val['ws']
 					if ws.closed:
+						del ws_set[key]
 						continue
 					else:
 						new_no = f"{(no+dd):08x}"
@@ -105,33 +102,36 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 			start_time = time.time()
 			while True:
 				try:
+					if time.time() - start_time > 90:
+						print(f"Request Timeout : {request.path} {no=:08x} {id=}")
+						await response.write_eof()
+						break
 					item = await asyncio.wait_for(submit_q.get(), 1)
 					submit_q.task_done()
+					#print(f"📤 Submit item : {json.dumps(item, indent=2)}")
+					if 'result' in item and item['result'] == "True":
+						print(f"... {item['no']}")
+						await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
 				except asyncio.TimeoutError:
-					await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
+					#await response.write(json.dumps({"result": "False"}).encode('utf-8')+b'\r\n')
 					continue
-				#print(f"📤 Submit item : {json.dumps(item, indent=2)}")
-				if 'result' in item and item['result'] == "True":
-					print(f"... {item['no']}")
-					await response.write(json.dumps(item).encode('utf-8')+b'\r\n')
-				if time.time() - start_time > 90:
-					print(f"Request Timeout : {request.path} {no=:08x} {id=}")
-					await response.write_eof()
-					break
 
 		except ConnectionResetError:
 			print("handle_params Client disconnected during streaming.")
 		except Exception as e:
 			print(f"An error occurred while handling params: {e}")
 		finally:
-			for ws in ws_set:
+			for key, val in ws_set.items():
 				try:
+					ws = val['ws']
 					if ws.closed:
+						del ws_set[key]
 						continue
 					else:
 						await ws.send_json({"req": "stop"})
 				except Exception as e:
 					print(f"⚠️ Error sending stop to WebSocket: {e}")
+
 		return response
 
 # --- Main Application Setup ---
@@ -141,7 +141,7 @@ app.add_routes([
 	web.get('/info', handle_info),
 	web.get('/ws_s', handle_ws),
 	web.post('/params', handle_params),
- 	web.post('/params2', handle_params)
+	web.post('/params2', handle_params)
 ])
 
 def main():
@@ -149,7 +149,7 @@ def main():
 	#asyncio.create_task(bell())
 	#asyncio.create_task(micro())
 	ws_queue = asyncio.Queue()
-	
+
 	"""Sets up the SSL context and runs the aiohttp application."""
 	cert_file = 'cert.pem'
 	key_file = 'key.pem'
