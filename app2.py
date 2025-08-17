@@ -48,6 +48,9 @@ info_html = \
 			<tr>
 				<th>run time</th>
 				<th>cpu usage</th>
+				<th>cpu_time</th>
+				<th>uptime</th>
+
 			</tr>
 		</thead>
 		<tbody>
@@ -73,6 +76,8 @@ info_html = \
 					row.innerHTML = `
 						<td>${item.run_time}</td>
 						<td>${item.cpu_usage}</td>
+						<td>${item.cpu_time}</td>
+						<td>${item.uptime}</td>
 					`;
 					tableBody.appendChild(row);
 				});
