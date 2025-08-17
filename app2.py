@@ -17,10 +17,88 @@ async def handle(request: web.Request) -> web.Response:
 	text = f"Hello, {name}, from your secure aiohttp server!"
 	return web.Response(text=text)
 
+info_html = \
+"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Auto-Refresh Table</title>
+	<style>
+		table {
+			border-collapse: collapse;
+			width: 50%;
+			margin: 20px auto;
+		}
+		th, td {
+			border: 1px solid #ccc;
+			padding: 8px;
+			text-align: left;
+		}
+		th {
+			background-color: #f4f4f4;
+		}
+	</style>
+</head>
+<body>
+
+	<h2 style="text-align:center;">Live Data Table</h2>
+	<table id="data-table">
+		<thead>
+			<tr>
+				<th>run time</th>
+				<th>cpu usage</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Data rows will be inserted here -->
+		</tbody>
+	</table>
+
+	<script>
+		const tableBody = document.querySelector("#data-table tbody");
+
+		async function fetchData() {
+			try {
+				// Replace with your actual JSON endpoint
+				//const response = await fetch("https://api.example.com/data.json");
+				//const data = await response.json();
+				data = $$json$$;
+				// Clear existing rows
+				tableBody.innerHTML = "";
+
+				// Populate table with new data
+				data.forEach(item => {
+					const row = document.createElement("tr");
+					row.innerHTML = `
+						<td>${item.run_time}</td>
+						<td>${item.cpu_usage}</td>
+					`;
+					tableBody.appendChild(row);
+				});
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			}
+		}
+
+		// Initial fetch
+		fetchData();
+
+		setInterval(() => {
+			location.reload();
+		}, 5000);
+	</script>
+
+</body>
+</html>
+"""
+
 ws_set = {}#set()
 async def handle_info(request: web.Request) -> web.Response:
 	json_data = [val.get("noti", {}) for key, val in ws_set.items()]
-	return web.json_response(json_data)
+	html = info_html.replace("$$json$$", json.dumps(json_data))
+	#print (html)
+	return web.Response(text=html, content_type='text/html')
 
 run_q = asyncio.Queue()
 submit_q = asyncio.Queue()
