@@ -46,6 +46,9 @@ info_html = \
 	<table id="data-table">
 		<thead>
 			<tr>
+				<th>name</th>
+				<th>stage</th>
+				<th>move</th>
 				<th>run time</th>
 				<th>cpu usage</th>
 				<th>cpu_time</th>
@@ -74,6 +77,9 @@ info_html = \
 				data.forEach(item => {
 					const row = document.createElement("tr");
 					row.innerHTML = `
+						<td>${item.name}</td>
+						<td>${item.stage}</td>
+						<td>${item.move}</td>
 						<td>${item.run_time}</td>
 						<td>${item.cpu_usage}</td>
 						<td>${item.cpu_time}</td>
