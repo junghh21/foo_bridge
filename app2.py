@@ -7,6 +7,8 @@ import sys
 import time
 from collections import defaultdict
 import traceback
+import subprocess
+import requests
 
 # Lock per URL
 url_locks = defaultdict(asyncio.Lock)
@@ -233,7 +235,7 @@ app.add_routes([
 	web.post('/params2', handle_params)
 ])
 
-def main():
+async def server_main():
 	global ws_queue
 	#asyncio.create_task(bell())
 	#asyncio.create_task(micro())
@@ -273,15 +275,54 @@ def main():
 	host = '0.0.0.0'
 	port = 3001
 	print(f"Starting secure server on https://{host}:{port}")
-	web.run_app(app, host=host, port=port, ssl_context=ssl_context)
+	runner = web.AppRunner(app)
+	await runner.setup()
+	site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
+	await site.start()
+	# web.run_app(app, host=host, port=port, ssl_context=ssl_context)
 	#web.run_app(app, host=host, port=port)
+
+def telegram_send_message(message, token=None, c_id=None):
+  url = f"https://api.telegram.org/bot{token}/sendMessage"
+  response = requests.post(url, data={'chat_id': c_id, 'text': message})
+  print(response.json())
+  
+async def timer_main():
+	next_noti = time.time()+3600/2
+	while True:
+		await asyncio.sleep(30)
+		cur_time = time.time()
+		if cur_time > next_noti:
+			# report connection
+			conns = 0
+			sum_stage = 0
+			sum_move = 0
+			for key, val in ws_set.items():
+				if "noti" in val:
+					noti = val["noti"]
+					if noti["name"] != "undefined":
+						conns += 1
+						sum_stage += noti["stage"] if noti["stage"].isdigit() else 0
+						sum_move += noti["move"] if noti["move"].isdigit() else 0
+			#print(f"Conns:{conns} {sum_stage}/{sum_move}")
+			telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", 1932486894)
+			next_noti = time.time()+3600/2
+
+async def main():
+	task1 = asyncio.create_task(server_main())
+	task2 = asyncio.create_task(timer_main())
+	await asyncio.gather(task1, task2)
 
 if __name__ == '__main__':
 	script_dir = os.path.dirname(os.path.abspath(__file__))
 	os.chdir(script_dir)
 	print(f"Working directory set to: {os.getcwd()}")
 
+	result = subprocess.run(['git', 'pull'], capture_output=True, text=True)
+	print("STDOUT:", result.stdout)
+	print("STDERR:", result.stderr)
+
 	try:
-		main()
+		asyncio.run(main())
 	except KeyboardInterrupt:
 		print("\n[Main] Program terminated by user.")
