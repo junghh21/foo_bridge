@@ -244,6 +244,8 @@ async def on_cleanup(app):
 		await task_timer
 	except asyncio.CancelledError:
 		print("task_timer cancelled.")
+app.on_startup.append(on_startup)
+app.on_cleanup.append(on_cleanup)
 
 def main():
 	global ws_queue
@@ -280,9 +282,6 @@ def main():
 		print(f"An SSL error occurred: {e}")
 		print("Please ensure your certificate and key files are valid and match.")
 		return
-
-	app.on_startup.append(on_startup)
-	app.on_cleanup.append(on_cleanup)
 
 	# --- Run the application with HTTPS ---
 	# Passing the `ssl_context` to `run_app` is what enables HTTPS.
