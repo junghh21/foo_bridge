@@ -283,30 +283,33 @@ async def server_main():
 	#web.run_app(app, host=host, port=port)
 
 def telegram_send_message(message, token=None, c_id=None):
-  url = f"https://api.telegram.org/bot{token}/sendMessage"
-  response = requests.post(url, data={'chat_id': c_id, 'text': message})
-  print(response.json())
-  
+	url = f"https://api.telegram.org/bot{token}/sendMessage"
+	response = requests.post(url, data={'chat_id': c_id, 'text': message})
+	print(response.json())
+	
 async def timer_main():
-	next_noti = time.time()+3600/2
+	next_noti = time.time()+10#3600/2
 	while True:
-		await asyncio.sleep(30)
-		cur_time = time.time()
-		if cur_time > next_noti:
-			# report connection
-			conns = 0
-			sum_stage = 0
-			sum_move = 0
-			for key, val in ws_set.items():
-				if "noti" in val:
-					noti = val["noti"]
-					if noti["name"] != "undefined":
-						conns += 1
-						sum_stage += noti["stage"] if noti["stage"].isdigit() else 0
-						sum_move += noti["move"] if noti["move"].isdigit() else 0
-			#print(f"Conns:{conns} {sum_stage}/{sum_move}")
-			telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", -1003016231971)
-			next_noti = time.time()+3600/2
+		try:
+			await asyncio.sleep(30)
+			cur_time = time.time()
+			if cur_time > next_noti:
+				# report connection
+				conns = 0
+				sum_stage = 0
+				sum_move = 0
+				for key, val in ws_set.items():
+					if "noti" in val:
+						noti = val["noti"]
+						if noti["name"] != "undefined":
+							conns += 1
+							sum_stage += noti["stage"] if isinstance(noti["stage"], int) else 0
+							sum_move += noti["move"] if isinstance(noti["move"], int) else 0
+				#print(f"Conns:{conns} {sum_stage}/{sum_move}")
+				telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", -1003016231971)
+				next_noti = time.time()+3600/2
+		except Exception() as e:
+			print(f"timer_main : {e}")
 
 async def main():
 	task1 = asyncio.create_task(server_main())
