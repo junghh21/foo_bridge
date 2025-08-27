@@ -2,3 +2,4 @@ aiohttp
 gunicorn
 flask
 redis
+requests
