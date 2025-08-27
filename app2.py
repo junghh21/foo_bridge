@@ -235,7 +235,17 @@ app.add_routes([
 	web.post('/params2', handle_params)
 ])
 
-async def server_main():
+async def on_startup(app):
+	task_timer = asyncio.create_task(timer_main())
+	
+async def on_cleanup(app):
+	task_timer.cancel()
+	try:
+		await task_timer
+	except asyncio.CancelledError:
+		print("task_timer cancelled.")
+
+def main():
 	global ws_queue
 	#asyncio.create_task(bell())
 	#asyncio.create_task(micro())
@@ -270,16 +280,20 @@ async def server_main():
 		print(f"An SSL error occurred: {e}")
 		print("Please ensure your certificate and key files are valid and match.")
 		return
+
+	app.on_startup.append(on_startup)
+	app.on_cleanup.append(on_cleanup)
+
 	# --- Run the application with HTTPS ---
 	# Passing the `ssl_context` to `run_app` is what enables HTTPS.
 	host = '0.0.0.0'
 	port = 3001
 	print(f"Starting secure server on https://{host}:{port}")
-	runner = web.AppRunner(app)
-	await runner.setup()
-	site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
-	await site.start()
-	# web.run_app(app, host=host, port=port, ssl_context=ssl_context)
+	# runner = web.AppRunner(app)
+	# await runner.setup()
+	# site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
+	# await site.start()
+	web.run_app(app, host=host, port=port, ssl_context=ssl_context)
 	#web.run_app(app, host=host, port=port)
 
 def telegram_send_message(message, token=None, c_id=None):
@@ -311,11 +325,6 @@ async def timer_main():
 		except Exception() as e:
 			print(f"timer_main : {e}")
 
-async def main():
-	task1 = asyncio.create_task(server_main())
-	task2 = asyncio.create_task(timer_main())
-	await asyncio.gather(task1, task2)
-
 if __name__ == '__main__':
 	script_dir = os.path.dirname(os.path.abspath(__file__))
 	os.chdir(script_dir)
@@ -326,6 +335,6 @@ if __name__ == '__main__':
 	print("STDERR:", result.stderr)
 
 	try:
-		asyncio.run(main())
+		main()
 	except KeyboardInterrupt:
 		print("\n[Main] Program terminated by user.")
