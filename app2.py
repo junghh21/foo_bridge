@@ -305,7 +305,7 @@ async def timer_main():
 						sum_stage += noti["stage"] if noti["stage"].isdigit() else 0
 						sum_move += noti["move"] if noti["move"].isdigit() else 0
 			#print(f"Conns:{conns} {sum_stage}/{sum_move}")
-			telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", 1932486894)
+			telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", -1003016231971)
 			next_noti = time.time()+3600/2
 
 async def main():
