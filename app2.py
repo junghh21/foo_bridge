@@ -235,10 +235,12 @@ app.add_routes([
 	web.post('/params2', handle_params)
 ])
 
+task_timer = None
 async def on_startup(app):
+	global task_timer
 	task_timer = asyncio.create_task(timer_main())
 	
-async def on_cleanup(app):
+async def on_cleanup(app):  
 	task_timer.cancel()
 	try:
 		await task_timer
