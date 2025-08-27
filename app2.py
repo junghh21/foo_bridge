@@ -302,7 +302,7 @@ def telegram_send_message(message, token=None, c_id=None):
 	print(response.json())
 	
 async def timer_main():
-	next_noti = time.time()+10#3600/2
+	next_noti = time.time()+30#3600/2
 	while True:
 		try:
 			await asyncio.sleep(30)
