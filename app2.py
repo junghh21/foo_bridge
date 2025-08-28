@@ -99,7 +99,7 @@ info_html = \
 
 		setInterval(() => {
 			location.reload();
-		}, 5000);
+		}, 10000);
 	</script>
 
 </body>
