@@ -324,7 +324,7 @@ async def timer_main():
 				#print(f"Conns:{conns} {sum_stage}/{sum_move}")
 				telegram_send_message (f"Conns:{conns} {sum_stage}/{sum_move}", "8490037832:AAHmmxVAkA5DqQjJno2O5Oqy2JEHgsDb9Dg", -1003016231971)
 				next_noti = time.time()+3600/2
-		except Exception() as e:
+		except Exception as e:
 			print(f"timer_main : {e}")
 
 if __name__ == '__main__':
