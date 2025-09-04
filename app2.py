@@ -225,6 +225,102 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 
 		return response
 
+async def list_config_files(request: web.Request) -> web.Response:
+		directory = "./"
+		files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+
+		# Generate HTML with download links
+		html = """
+	<html>
+	<head>
+		<title>Upload Config File</title>
+		<style>
+			body {
+				font-family: sans-serif;
+				padding: 2em;
+			}
+			.upload-box {
+				border: 1px solid #ccc;
+				padding: 1em;
+				width: 300px;
+				margin: auto;
+				text-align: center;
+				background-color: #f9f9f9;
+				border-radius: 8px;
+			}
+			input[type="file"] {
+				margin-bottom: 1em;
+			}
+			button {
+				padding: 0.5em 1em;
+				font-size: 1em;
+				cursor: pointer;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+			document.querySelector('input[type="file"]').addEventListener('change', function() {
+			const file = this.files[0];
+			console.log(file.name); // e.g., "config.json"
+		});
+		</script>
+		<div class="upload-box">
+			<h2>Upload Config File</h2>
+			<form action="/config_file" method="post" enctype="multipart/form-data">
+				<input type="file" name="file" required>
+				<br>
+				<button type="submit">Upload</button>
+			</form>
+		</div>
+		##insert##
+	</body>
+	</html>
+		"""
+		html2 = "<h2>Available Config Files</h2><ul>"
+		for file_name in files:
+				href = f"/config_file?file={file_name}"
+				html2 += f'<li><a href="{href}" download>{file_name}</a></li>'
+		html2 += "</ul>"
+		html = html.replace("##insert##", html2)
+		return web.Response(content_type="text/html", text=html)
+	
+async def get_config_file(request: web.Request) -> web.StreamResponse:
+	try:
+		file_name = os.path.basename(request.query.get('file', 'config.json'))
+		file_path = f"./{file_name}"
+
+		if not os.path.exists(file_path):
+			return web.Response(status=404, text=f"{file_name} not found")
+
+		return web.FileResponse(
+			path=file_path,
+			headers={'Content-Disposition': f'attachment; filename="{file_name}"'}
+		)
+	except Exception as e:
+		return web.Response(status=500, text=f"Error: {str(e)}")
+
+async def post_config_file(request: web.Request) -> web.Response:
+	reader = await request.multipart()
+	# Expecting a field named 'file'
+	field = await reader.next()
+	if field.name != 'file':
+		return web.Response(status=400, text="Missing 'file' field")
+	# Get filename and sanitize it
+	filename = os.path.basename(field.filename)
+	save_path = os.path.join("./", filename)
+	# Save file to disk
+	try:
+		with open(save_path, 'wb') as f:
+			while True:
+				chunk = await field.read_chunk()  # Default chunk size is 8192 bytes
+				if not chunk:
+					break
+				f.write(chunk)
+		return web.Response(status=302,headers={'Location': '/config_file_list'})
+	except Exception as e:
+		return web.Response(status=500, text=f"Upload failed: {str(e)}")
+
 # --- Main Application Setup ---
 app = web.Application()
 app.add_routes([
@@ -232,14 +328,17 @@ app.add_routes([
 	web.get('/info', handle_info),
 	web.get('/ws_s', handle_ws),
 	web.post('/params', handle_params),
-	web.post('/params2', handle_params)
+	web.post('/params2', handle_params),
+	web.get('/config_file_list', list_config_files),
+	web.get('/config_file', get_config_file),
+	web.post('/config_file', post_config_file),
 ])
 
 task_timer = None
 async def on_startup(app):
 	global task_timer
 	task_timer = asyncio.create_task(timer_main())
-	
+
 async def on_cleanup(app):
 	global task_timer
 	task_timer.cancel()
@@ -302,7 +401,7 @@ def telegram_send_message(message, token=None, c_id=None):
 	url = f"https://api.telegram.org/bot{token}/sendMessage"
 	response = requests.post(url, data={'chat_id': c_id, 'text': message})
 	print(response.json())
-	
+
 async def timer_main():
 	next_noti = time.time()+30#3600/2
 	while True:
