@@ -159,6 +159,8 @@ async def handle_ws(request):
 
 	return ws
 
+MAX_MOVE = 20000
+MAX_THREAD = 100
 async def handle_params(request: web.Request) -> web.StreamResponse:
 	async with url_locks[request.path]:  # Wait if another coroutine is using this URL
 		try:
@@ -185,7 +187,7 @@ async def handle_params(request: web.Request) -> web.StreamResponse:
 						continue
 					else:
 						new_no = f"{(no+dd):08x}"
-						dd += 20000
+						dd += MAX_MOVE*MAX_THREAD
 						#print(f"📤 Sending data to WebSocket: {json.dumps(data, indent=2)}")
 						await ws.send_json({"req": "run", "path": request.path, "bin": data['bin'], "no": new_no})
 				except Exception as e:
